@@ -25,6 +25,7 @@ function App() {
   
   const [mensagem, setMensagem] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [agora, setAgora] = useState(new Date())
 
   useEffect(() => {
     async function carregarSessao() {
@@ -50,6 +51,14 @@ function App() {
       carregarDados()
     }
   }, [session])
+
+  useEffect(() => {
+  const intervalo = setInterval(() => {
+    setAgora(new Date())
+  }, 60 * 1000)
+
+  return () => clearInterval(intervalo)
+}, [])
 
   async function carregarDados() {
     setMensagem('Carregando jogos...')
@@ -123,6 +132,18 @@ if (rankingError) {
     setIsAdmin(perfilData?.is_admin === true)
     setMensagem('')  }
 
+  function deveMostrarJogo(jogo) {
+    const inicioJogo = new Date(jogo.data_hora)
+
+    // Assumindo duração média de 2 horas para a partida
+    const fimEstimadoJogo = new Date(inicioJogo.getTime() + 2 * 60 * 60 * 1000)
+
+    // O bloco desaparece 1 hora depois do fim estimado
+    const limiteExibicao = new Date(fimEstimadoJogo.getTime() + 1 * 60 * 60 * 1000)
+
+    return agora < limiteExibicao
+  }
+
   function alterarPalpite(jogoId, campo, valor) {
     setPalpites((anteriores) => ({
       ...anteriores,
@@ -179,61 +200,54 @@ if (rankingError) {
     }))
   }
 
-  async function adicionarJogo(evento) {
-    evento.preventDefault()
+async function adicionarJogo(evento) {
+  evento.preventDefault()
 
-    if (
-      novoJogo.fase === '' ||
-      novoJogo.data_hora === '' ||
-      novoJogo.time_a === '' ||
-      novoJogo.time_b === ''
-    ) {
-      setMensagem('Preencha todos os campos do jogo.')
-      return
-    }
+  if (
+    novoJogo.fase === '' ||
+    novoJogo.data_hora === '' ||
+    novoJogo.time_a === '' ||
+    novoJogo.time_b === ''
+  ) {
+    setMensagem('Preencha todos os campos do jogo.')
+    return
+  }
 
-    setCarregando(true)
-    setMensagem('Adicionando jogo...')
+  setCarregando(true)
+  setMensagem('Adicionando jogo...')
 
-const { error } = await supabase.from('jogos').insert({
-  fase: novoJogo.fase,
-  data_hora: <p>
-  {new Date(jogo.data_hora).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'America/Sao_Paulo',
-  })}{' '}
-  às{' '}
-  {new Date(jogo.data_hora).toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'America/Sao_Paulo',
-  })}
-</p>,
-  time_a: novoJogo.time_a,
-  time_b: novoJogo.time_b,
-  gols_a_real: null,
-  gols_b_real: null,
-})
+  try {
+    const { error } = await supabase.from('jogos').insert({
+      fase: novoJogo.fase.trim(),
+      data_hora: new Date(novoJogo.data_hora).toISOString(),
+      time_a: novoJogo.time_a.trim(),
+      time_b: novoJogo.time_b.trim(),
+      gols_a_real: null,
+      gols_b_real: null,
+    })
 
     if (error) {
       setMensagem(`Erro ao adicionar jogo: ${error.message}`)
-    } else {
-      setMensagem('Jogo adicionado com sucesso.')
-
-      setNovoJogo({
-        fase: '',
-        data_hora: '',
-        time_a: '',
-        time_b: '',
-      })
-
-      await carregarDados()
+      return
     }
 
+    setMensagem('Jogo adicionado com sucesso.')
+
+    setNovoJogo({
+      fase: '',
+      data_hora: '',
+      time_a: '',
+      time_b: '',
+    })
+
+    await carregarDados()
+  } catch (erro) {
+    console.error('Erro inesperado ao adicionar jogo:', erro)
+    setMensagem(`Erro inesperado ao adicionar jogo: ${erro.message}`)
+  } finally {
     setCarregando(false)
   }
+}
 
 async function salvarResultado(jogoId, golsAReal, golsBReal) {
   if (golsAReal === '' || golsBReal === '' || golsAReal === null || golsBReal === null) {
@@ -477,12 +491,12 @@ return (
 
       <h2>Jogos e palpites</h2>
 
-      {jogos.length === 0 && <p>Nenhum jogo cadastrado.</p>}
+      {jogosVisiveis.length === 0 && <p>Nenhum jogo disponível no momento.</p>}
 
-      {jogos.map((jogo) => {
-        const palpite = palpites[jogo.id] || {}
-        const jogoComecou = new Date(jogo.data_hora) <= new Date()
+      {jogosVisiveis.map((jogo) => {        const palpite = palpites[jogo.id] || {}
+        const jogoComecou = new Date(jogo.data_hora) <= agora
         const listaPalpitesPublicos = palpitesPublicos[jogo.id] || []
+        const jogosVisiveis = jogos.filter(deveMostrarJogo)
 
         return (
           <section key={jogo.id}>     
