@@ -302,6 +302,51 @@ function alterarResultado(jogoId, campo, valor) {
 
     setCarregando(false)
   }
+function obterZonaRanking(index, totalParticipantes) {
+  const posicao = index + 1
+  const ehUltimo = posicao === totalParticipantes
+  const estaNoRebaixamento = posicao > totalParticipantes - 4
+
+  if (ehUltimo) {
+    return {
+      texto: '🧠 Prêmio Dinizismo Estatístico / Troféu Eu Acreditei',
+      classe: 'zona-dinizismo',
+    }
+  }
+
+  if (estaNoRebaixamento) {
+    return {
+      texto: '🔻 Rebaixamento',
+      classe: 'zona-rebaixamento',
+    }
+  }
+
+  if (posicao <= 3) {
+    return {
+      texto: '🏆 G3',
+      classe: 'zona-g3',
+    }
+  }
+
+  if (posicao >= 4 && posicao <= 6) {
+    return {
+      texto: '🟦 Pré-Libertadores',
+      classe: 'zona-pre-libertadores',
+    }
+  }
+
+  if (posicao >= 7 && posicao <= 12) {
+    return {
+      texto: '🟩 Sul-Americana',
+      classe: 'zona-sulamericana',
+    }
+  }
+
+  return {
+    texto: 'Meio de tabela',
+    classe: 'zona-meio',
+  }
+}
 
 async function sair() {
   await supabase.auth.signOut()
@@ -507,11 +552,12 @@ return (
 
 {ranking.length === 0 && <p>Nenhuma pontuação calculada ainda.</p>}
 
-<table>
+<table className="tabela-ranking">
   <thead>
     <tr>
       <th>Posição</th>
       <th>Participante</th>
+      <th>Zona</th>
       <th>Pontos</th>
       <th>Placar exato</th>
       <th>Pontos no mata-mata</th>
@@ -519,15 +565,20 @@ return (
   </thead>
 
   <tbody>
-    {ranking.map((item, index) => (
-      <tr key={item.user_id}>
-        <td>{index + 1}º</td>
-        <td>{item.apelido || item.nome}</td>
-        <td>{item.pontos}</td>
-        <td>{item.placares_exatos}</td>
-        <td>{item.pontos_mata_mata}</td>
-      </tr>
-    ))}
+    {ranking.map((item, index) => {
+      const zona = obterZonaRanking(index, ranking.length)
+
+      return (
+        <tr key={item.user_id} className={zona.classe}>
+          <td>{index + 1}º</td>
+          <td>{item.apelido || item.nome}</td>
+          <td>{zona.texto}</td>
+          <td>{item.pontos}</td>
+          <td>{item.placares_exatos}</td>
+          <td>{item.pontos_mata_mata}</td>
+        </tr>
+      )
+    })}
   </tbody>
 </table>
 
@@ -617,6 +668,15 @@ return (
     </li>
 
   </ul>
+
+    <h3>Valor de participação: R$ 30 por pessoa.</h3>
+    <h4>O valor arrecadado será distribuído entre os três primeiros colocados:</h4>
+  <ul>
+    <li>1º lugar: 60% do total arrecadado</li>
+    <li>2º lugar: 30% do total arrecadado</li>
+    <li>3º lugar: 10% do total arrecadado</li>
+  </ul>
+
 </section>
 
 

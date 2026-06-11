@@ -280,29 +280,29 @@ td {
   border-bottom: 1px solid #e5eaf0;
 }
 
-tbody tr:nth-child(even) {
+table tbody tr:nth-child(even) {
   background: #f7fbff;
 }
 
-tbody tr:hover {
+table tbody tr:hover {
   background: var(--amarelo-card);
 }
 
-/* Destaque pódio */
-tbody tr:nth-child(1) td {
+/* Destaque pódio apenas no ranking */
+.tabela-ranking tbody tr:nth-child(1) td {
   background: linear-gradient(90deg, rgba(255, 223, 0, 0.45), transparent);
   font-weight: 900;
 }
 
-tbody tr:nth-child(1) td:first-child::after {
+.tabela-ranking tbody tr:nth-child(1) td:first-child::after {
   content: " 🏆";
 }
 
-tbody tr:nth-child(2) td:first-child::after {
+.tabela-ranking tbody tr:nth-child(2) td:first-child::after {
   content: " 🥈";
 }
 
-tbody tr:nth-child(3) td:first-child::after {
+.tabela-ranking tbody tr:nth-child(3) td:first-child::after {
   content: " 🥉";
 }
 
@@ -422,4 +422,68 @@ main > p:last-child {
 .regras-bolao table {
   margin-top: 1rem;
   margin-bottom: 1rem;
+}
+
+.tabela-ranking td:nth-child(3) {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* G3 */
+.zona-g3 td {
+  background: linear-gradient(90deg, rgba(255, 223, 0, 0.55), rgba(255, 255, 255, 0.95));
+}
+
+.zona-g3 td:first-child {
+  font-weight: 900;
+  color: #002776;
+}
+
+/* Pré-Libertadores */
+.zona-pre-libertadores td {
+  background: linear-gradient(90deg, rgba(0, 39, 118, 0.16), rgba(255, 255, 255, 0.95));
+}
+
+/* Sul-Americana */
+.zona-sulamericana td {
+  background: linear-gradient(90deg, rgba(0, 156, 59, 0.16), rgba(255, 255, 255, 0.95));
+}
+
+/* Meio de tabela */
+.zona-meio td {
+  background: #ffffff;
+}
+
+/* Rebaixamento */
+.zona-rebaixamento td {
+  background: linear-gradient(90deg, rgba(220, 38, 38, 0.18), rgba(255, 255, 255, 0.95));
+}
+
+/* Último lugar especial */
+.zona-dinizismo td {
+  background: linear-gradient(90deg, rgba(127, 29, 29, 0.25), rgba(255, 247, 237, 0.98));
+  font-weight: 800;
+}
+
+.zona-dinizismo td:nth-child(3) {
+  color: #7f1d1d;
+}
+
+/* Responsividade da tabela */
+@media (max-width: 720px) {
+  .tabela-ranking {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .tabela-ranking th,
+  .tabela-ranking td {
+    min-width: 120px;
+  }
+
+  .tabela-ranking th:nth-child(3),
+  .tabela-ranking td:nth-child(3) {
+    min-width: 260px;
+  }
 }
