@@ -70,29 +70,45 @@ function App() {
     return () => clearInterval(intervalo)
   }, [])
 
-  function obterDataValida(dataHora) {
-    if (!dataHora) return null
+function obterDataValida(dataHora) {
+  if (!dataHora) return null
 
-    const data = new Date(dataHora)
+  const texto = String(dataHora)
 
-    if (Number.isNaN(data.getTime())) {
-      return null
-    }
+  const partes = texto.match(
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+  )
 
-    return data
+  if (partes) {
+    const ano = Number(partes[1])
+    const mes = Number(partes[2]) - 1
+    const dia = Number(partes[3])
+    const hora = Number(partes[4])
+    const minuto = Number(partes[5])
+    const segundo = Number(partes[6] || 0)
+
+    return new Date(ano, mes, dia, hora, minuto, segundo)
   }
 
-  function formatarDataHora(dataHora) {
-    const data = obterDataValida(dataHora)
+  const data = new Date(dataHora)
 
-    if (!data) {
-      return 'Data inválida'
-    }
-
-    return data.toLocaleString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-    })
+  if (Number.isNaN(data.getTime())) {
+    return null
   }
+
+  return data
+}
+
+function formatarDataHora(dataHora) {
+  const data = obterDataValida(dataHora)
+
+  if (!data) {
+    return 'Data inválida'
+  }
+
+  return data.toLocaleString('pt-BR')
+}   
+  
 
   function jogoJaComecou(jogo) {
     const inicioJogo = obterDataValida(jogo.data_hora)
@@ -281,7 +297,7 @@ function App() {
     try {
       const { error } = await supabase.from('jogos').insert({
         fase: novoJogo.fase.trim(),
-        data_hora: novoJogo.data_hora,
+        data_hora: novoJogo.data_hora.replace('T', ' '), 
         time_a: novoJogo.time_a.trim(),
         time_b: novoJogo.time_b.trim(),
         gols_a_real: null,
