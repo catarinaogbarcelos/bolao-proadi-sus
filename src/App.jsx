@@ -513,6 +513,8 @@ return (
       <th>Posição</th>
       <th>Participante</th>
       <th>Pontos</th>
+      <th>Placar exato</th>
+      <th>Pontos no mata-mata</th>
     </tr>
   </thead>
 
@@ -522,10 +524,101 @@ return (
         <td>{index + 1}º</td>
         <td>{item.apelido || item.nome}</td>
         <td>{item.pontos}</td>
+        <td>{item.placares_exatos}</td>
+        <td>{item.pontos_mata_mata}</td>
       </tr>
     ))}
   </tbody>
 </table>
+
+<section className="regras-bolao">
+  <h2>Regras do Bolão</h2>
+
+  <p>
+    Os palpites podem ser criados ou alterados até o horário de início de cada
+    partida. Depois que o jogo começa, o palpite fica bloqueado.
+  </p>
+
+  <p>
+    Antes do início da partida, cada participante vê apenas o próprio palpite.
+    Após o início do jogo, os palpites daquela partida ficam visíveis para todos.
+  </p>
+
+  <h3>Pontuação</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Acerto</th>
+        <th>Grupos</th>
+        <th>16 avos / Oitavas</th>
+        <th>Quartas</th>
+        <th>Semis / 3º lugar</th>
+        <th>Final</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr>
+        <td>Placar exato</td>
+        <td>10</td>
+        <td>15</td>
+        <td>20</td>
+        <td>25</td>
+        <td>30</td>
+      </tr>
+
+      <tr>
+        <td>Vencedor/empate + saldo</td>
+        <td>7</td>
+        <td>10</td>
+        <td>14</td>
+        <td>17</td>
+        <td>21</td>
+      </tr>
+
+      <tr>
+        <td>Apenas vencedor/empate</td>
+        <td>5</td>
+        <td>7</td>
+        <td>10</td>
+        <td>12</td>
+        <td>15</td>
+      </tr>
+
+      <tr>
+        <td>Errou vencedor/empate</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Critérios importantes</h3>
+
+  <ul>
+    <li>Jogo sem palpite vale 0 pontos.</li>
+    <li>O ranking é atualizado após o lançamento do resultado oficial.</li>
+    <li>
+      Em jogos de mata-mata, vale o placar até o fim da prorrogação, se houver.
+      Disputa de pênaltis não entra no placar.
+    </li>
+    <li>
+      Critérios de desempate: maior número de placares exatos, maior pontuação
+      no mata-mata e maior número de acertos de vencedor/empate.
+    </li>
+        <li>
+      Nenhuma regra aqui é fixa, tudo pode ser adaptável. Sou apenas uma pobre
+      camponesa com o chatgpt. Se tiverem mais sugestões, fiquem a vontade para
+      falarem e vamos arrumando e melhorando no percurso.
+    </li>
+
+  </ul>
+</section>
+
 
 {isAdmin && (
   <>
