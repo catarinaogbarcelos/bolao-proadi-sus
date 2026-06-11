@@ -318,7 +318,7 @@ async function sair() {
 return (
   <main>
     <img
-      src={`${import.meta.env.BASE_URL}images/banner.png`}
+      src={`${import.meta.env.BASE_URL}images/banner.jpg`}
       alt="Banner do Bolão do Proadi-SUS rumo ao hexa"
       className="hero-banner"
     />
@@ -403,7 +403,7 @@ return (
 return (
   <main>
     <img
-      src={`${import.meta.env.BASE_URL}images/banner.png`}
+      src={`${import.meta.env.BASE_URL}images/banner.jpg`}
       alt="Banner do Bolão do Proadi-SUS rumo ao hexa"
       className="hero-banner"
     />
