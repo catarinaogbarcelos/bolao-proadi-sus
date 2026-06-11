@@ -1,0 +1,401 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --brasil-verde: #009c3b;
+  --brasil-verde-escuro: #006b2d;
+  --brasil-amarelo: #ffdf00;
+  --brasil-amarelo-escuro: #d6b900;
+  --brasil-azul: #002776;
+  --brasil-azul-claro: #1746a2;
+  --branco: #ffffff;
+  --off-white: #fffdf4;
+  --cinza-texto: #1f2933;
+  --cinza-suave: #eef2f7;
+  --verde-card: #e8f8ed;
+  --amarelo-card: #fff7c7;
+  --sombra: 0 18px 45px rgba(0, 39, 118, 0.14);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--cinza-texto);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255, 223, 0, 0.45), transparent 28%),
+    radial-gradient(circle at top right, rgba(0, 156, 59, 0.35), transparent 30%),
+    linear-gradient(135deg, #fffdf4 0%, #eef8ff 45%, #e8f8ed 100%);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.7rem 1.15rem;
+  background: var(--brasil-amarelo);
+  color: var(--brasil-azul);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 39, 118, 0.18);
+  transition: 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: #ffe94a;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+input {
+  width: 100%;
+  border: 2px solid rgba(0, 39, 118, 0.15);
+  border-radius: 14px;
+  padding: 0.75rem 0.85rem;
+  background: var(--branco);
+  color: var(--cinza-texto);
+}
+
+input:focus {
+  outline: 3px solid rgba(255, 223, 0, 0.45);
+  border-color: var(--brasil-verde);
+}
+
+input[type="number"] {
+  max-width: 90px;
+  text-align: center;
+  font-weight: 900;
+  color: var(--brasil-azul);
+}
+
+input:disabled {
+  background: #eef2f7;
+  color: #6b7280;
+  border-color: #d9e0e8;
+}
+
+main {
+  width: min(1120px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+/* Cabeçalho */
+h1 {
+  position: relative;
+  margin: 0 0 0.75rem;
+  padding: 2rem;
+  border-radius: 32px;
+  color: var(--branco);
+  background:
+    linear-gradient(135deg, rgba(0, 156, 59, 0.98), rgba(0, 39, 118, 0.98)),
+    radial-gradient(circle at 80% 20%, var(--brasil-amarelo), transparent 25%);
+  box-shadow: var(--sombra);
+  font-size: clamp(2.2rem, 6vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+  overflow: hidden;
+}
+
+h1::before {
+  content: "★★★★★";
+  display: block;
+  margin-bottom: 0.55rem;
+  color: var(--brasil-amarelo);
+  font-size: clamp(1.1rem, 3vw, 1.8rem);
+  letter-spacing: 0.18em;
+  text-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
+}
+
+h1::after {
+  content: "Rumo ao Hexa";
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: var(--brasil-amarelo);
+  color: var(--brasil-azul);
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+h2 {
+  margin: 2.2rem 0 1rem;
+  font-size: 1.55rem;
+  color: var(--brasil-azul);
+}
+
+h2::before {
+  content: "◆ ";
+  color: var(--brasil-amarelo-escuro);
+}
+
+h3 {
+  margin: 1rem 0 0.6rem;
+  font-size: 1.05rem;
+  color: var(--brasil-verde-escuro);
+}
+
+p {
+  line-height: 1.5;
+}
+
+hr {
+  border: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--brasil-verde),
+    var(--brasil-amarelo),
+    var(--brasil-azul),
+    transparent
+  );
+  margin: 2.2rem 0;
+}
+
+/* Usuário conectado */
+main > p:first-of-type {
+  display: inline-block;
+  margin: 1rem 0 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: var(--branco);
+  border: 2px solid rgba(0, 156, 59, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 39, 118, 0.08);
+}
+
+main > button {
+  margin-left: 0.5rem;
+  background: var(--brasil-azul);
+  color: var(--branco);
+}
+
+main > button:hover:not(:disabled) {
+  background: var(--brasil-azul-claro);
+}
+
+/* Cards gerais */
+section {
+  position: relative;
+  margin: 1rem 0;
+  padding: 1.35rem;
+  border: 2px solid rgba(0, 156, 59, 0.18);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--sombra);
+  overflow: hidden;
+}
+
+section::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 8px;
+  background: linear-gradient(
+    180deg,
+    var(--brasil-verde),
+    var(--brasil-amarelo),
+    var(--brasil-azul)
+  );
+}
+
+section p:first-child {
+  margin-top: 0;
+}
+
+section p:first-child strong {
+  font-size: 1.22rem;
+  color: var(--brasil-azul);
+}
+
+section input[type="number"] + span {
+  display: inline-block;
+  margin: 0 0.4rem;
+  font-weight: 1000;
+  color: var(--brasil-verde-escuro);
+}
+
+/* Formulários */
+form {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+form button {
+  width: fit-content;
+}
+
+/* Palpites liberados após início do jogo */
+section div {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--verde-card), #ffffff);
+  border: 2px dashed rgba(0, 156, 59, 0.35);
+}
+
+section div p {
+  margin: 0.35rem 0;
+}
+
+section div strong {
+  color: var(--brasil-azul);
+}
+
+/* Ranking */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--branco);
+  box-shadow: var(--sombra);
+}
+
+thead {
+  background: linear-gradient(135deg, var(--brasil-verde), var(--brasil-azul));
+  color: var(--branco);
+}
+
+th,
+td {
+  padding: 0.95rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5eaf0;
+}
+
+tbody tr:nth-child(even) {
+  background: #f7fbff;
+}
+
+tbody tr:hover {
+  background: var(--amarelo-card);
+}
+
+/* Destaque pódio */
+tbody tr:nth-child(1) td {
+  background: linear-gradient(90deg, rgba(255, 223, 0, 0.45), transparent);
+  font-weight: 900;
+}
+
+tbody tr:nth-child(1) td:first-child::after {
+  content: " 🏆";
+}
+
+tbody tr:nth-child(2) td:first-child::after {
+  content: " 🥈";
+}
+
+tbody tr:nth-child(3) td:first-child::after {
+  content: " 🥉";
+}
+
+/* Área Admin */
+h2:nth-of-type(n + 3) {
+  color: var(--brasil-verde-escuro);
+}
+
+h2:nth-of-type(n + 3)::before {
+  content: "⚙️ ";
+  color: var(--brasil-azul);
+}
+
+/* Mensagens */
+main > p:last-child {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 1.2rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  background: var(--brasil-azul);
+  color: var(--branco);
+  font-weight: 700;
+}
+
+/* Responsividade */
+@media (min-width: 760px) {
+  form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  form button {
+    grid-column: 1 / -1;
+  }
+
+  section {
+    padding: 1.5rem 1.5rem 1.5rem 1.75rem;
+  }
+}
+
+@media (max-width: 720px) {
+  main {
+    width: min(100% - 1rem, 1120px);
+    padding-top: 1rem;
+  }
+
+  h1 {
+    padding: 1.35rem;
+    border-radius: 24px;
+  }
+
+  section {
+    border-radius: 18px;
+    padding: 1rem 1rem 1rem 1.25rem;
+  }
+
+  main > button {
+    display: block;
+    margin: 0.75rem 0 0;
+  }
+
+  table {
+    font-size: 0.9rem;
+  }
+
+  th,
+  td {
+    padding: 0.7rem;
+  }
+
+  input[type="number"] {
+    max-width: 72px;
+  }
+}
+.hero-banner {
+  display: block;
+  width: 100%;
+  max-height: 390px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 28px;
+  box-shadow: 0 22px 55px rgba(0, 39, 118, 0.24);
+  margin-bottom: 1.5rem;
+  border: 4px solid #ffdf00;
+}
+
+.titulo-acessivel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
