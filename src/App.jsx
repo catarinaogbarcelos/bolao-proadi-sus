@@ -195,14 +195,14 @@ if (rankingError) {
     setCarregando(true)
     setMensagem('Adicionando jogo...')
 
-    const { error } = await supabase.from('jogos').insert({
-      fase: novoJogo.fase,
-      data_hora: novoJogo.data_hora,
-      time_a: novoJogo.time_a,
-      time_b: novoJogo.time_b,
-      gols_a_real: null,
-      gols_b_real: null,
-    })
+const { error } = await supabase.from('jogos').insert({
+  fase: novoJogo.fase,
+  data_hora: new Date(novoJogo.data_hora).toISOString(),
+  time_a: novoJogo.time_a,
+  time_b: novoJogo.time_b,
+  gols_a_real: null,
+  gols_b_real: null,
+})
 
     if (error) {
       setMensagem(`Erro ao adicionar jogo: ${error.message}`)
