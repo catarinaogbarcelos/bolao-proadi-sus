@@ -197,7 +197,20 @@ if (rankingError) {
 
 const { error } = await supabase.from('jogos').insert({
   fase: novoJogo.fase,
-  data_hora: new Date(novoJogo.data_hora).toISOString(),
+  data_hora: <p>
+  {new Date(jogo.data_hora).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'America/Sao_Paulo',
+  })}{' '}
+  às{' '}
+  {new Date(jogo.data_hora).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Sao_Paulo',
+  })}
+</p>,
   time_a: novoJogo.time_a,
   time_b: novoJogo.time_b,
   gols_a_real: null,
