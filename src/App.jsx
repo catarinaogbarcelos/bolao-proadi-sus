@@ -472,6 +472,8 @@ return (
     )
   }
 
+ const jogosVisiveis = jogos.filter(deveMostrarJogo)
+
 return (
   <main>
     <img
@@ -481,26 +483,29 @@ return (
     />
 
     <h1 className="titulo-acessivel">Bolão do Proadi-SUS</h1>
-      <p>
-        Usuário conectado: <strong>{session.user.email}</strong>
-      </p>
 
-      <button onClick={sair}>Sair</button>
+    <p>
+      Usuário conectado: <strong>{session.user.email}</strong>
+    </p>
 
-      <hr />
+    <button onClick={sair}>Sair</button>
 
-      <h2>Jogos e palpites</h2>
+    <hr />
 
-      {jogosVisiveis.length === 0 && <p>Nenhum jogo disponível no momento.</p>}
+    <h2>Jogos e palpites</h2>
 
-      {jogosVisiveis.map((jogo) => {        const palpite = palpites[jogo.id] || {}
-        const jogoComecou = new Date(jogo.data_hora) <= agora
-        const listaPalpitesPublicos = palpitesPublicos[jogo.id] || []
-        const jogosVisiveis = jogos.filter(deveMostrarJogo)
+    {jogosVisiveis.length === 0 && (
+      <p>Nenhum jogo disponível no momento.</p>
+    )}
 
-        return (
-          <section key={jogo.id}>     
-            <p>
+    {jogosVisiveis.map((jogo) => {
+      const palpite = palpites[jogo.id] || {}
+      const jogoComecou = new Date(jogo.data_hora) <= agora
+      const listaPalpitesPublicos = palpitesPublicos[jogo.id] || []
+
+      return (
+        <section key={jogo.id}>
+                     <p>
 
               <strong>
                 {jogo.time_a} x {jogo.time_b}
