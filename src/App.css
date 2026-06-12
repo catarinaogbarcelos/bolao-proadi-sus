@@ -241,6 +241,22 @@ form button {
   width: fit-content;
 }
 
+.jogo-times {
+  width: 100%;
+  max-width: 100%;
+
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+
+  overflow-wrap: anywhere;
+  word-break: normal;
+
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  line-height: 1.2;
+  color: #003478;
+}
+
 /* Palpites liberados após início do jogo */
 section div {
   margin-top: 1rem;

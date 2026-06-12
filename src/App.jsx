@@ -611,12 +611,9 @@ function formatarDataHora(dataHora) {
 
         return (
           <section key={jogo.id}>
-            <p>
-              <strong>
-                {jogo.time_a} x {jogo.time_b}
-              </strong>
-            </p>
-
+            <h3 className="jogo-times notranslate" translate="no">
+              {(jogo.time_a || "A definir") + " x " + (jogo.time_b || "A definir")}
+            </h3>
             <p>{formatarDataHora(jogo.data_hora)}</p>
 
             <input
