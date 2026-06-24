@@ -73,6 +73,39 @@ function App() {
     return () => clearInterval(intervalo)
   }, [])
 
+  // Atualiza sozinho, de tempos em tempos, os palpites dos participantes e o
+  // ranking, sem precisar recarregar a página na mão.
+  useEffect(() => {
+    if (!session?.user?.id) return
+
+    const intervalo = setInterval(() => {
+      atualizarDadosPublicos(session.user.id)
+    }, 30 * 1000)
+
+    return () => clearInterval(intervalo)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id])
+
+  // Também atualiza assim que você volta para a aba ou reabre o app.
+  useEffect(() => {
+    if (!session?.user?.id) return
+
+    function aoVoltarParaTela() {
+      if (document.visibilityState === 'visible') {
+        atualizarDadosPublicos(session.user.id)
+      }
+    }
+
+    window.addEventListener('focus', aoVoltarParaTela)
+    document.addEventListener('visibilitychange', aoVoltarParaTela)
+
+    return () => {
+      window.removeEventListener('focus', aoVoltarParaTela)
+      document.removeEventListener('visibilitychange', aoVoltarParaTela)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id])
+
   function limparPalpites() {
     setPalpites({})
   }
@@ -170,38 +203,27 @@ function App() {
         return
       }
 
-const jogosComPalpitesPublicos = (jogosData || [])
-  .filter((jogo) => jogoJaComecou(jogo) && deveMostrarJogo(jogo))
-  .map((jogo) => jogo.id)
+      const { data: palpitesPublicosData, error: palpitesPublicosError } =
+        await supabase
+          .from('palpites')
+          .select(`
+            id,
+            user_id,
+            jogo_id,
+            gols_a_palpite,
+            gols_b_palpite,
+            profiles (
+              nome,
+              apelido
+            )
+          `)
 
-let palpitesPublicosData = []
-
-if (jogosComPalpitesPublicos.length > 0) {
-  const { data, error } = await supabase
-    .from('palpites')
-    .select(`
-      id,
-      user_id,
-      jogo_id,
-      gols_a_palpite,
-      gols_b_palpite,
-      profiles (
-        nome,
-        apelido
-      )
-    `)
-    .in('jogo_id', jogosComPalpitesPublicos)
-    .order('jogo_id', { ascending: true })
-    .order('id', { ascending: true })
-
-  if (error) {
-    setMensagem(`Erro ao carregar palpites públicos: ${error.message}`)
-    return
-  }
-
-  palpitesPublicosData = data || []
-}
-
+      if (palpitesPublicosError) {
+        setMensagem(
+          `Erro ao carregar palpites públicos: ${palpitesPublicosError.message}`
+        )
+        return
+      }
 
       const { data: rankingData, error: rankingError } = await supabase
         .from('ranking')
@@ -262,6 +284,67 @@ if (jogosComPalpitesPublicos.length > 0) {
     } catch (erro) {
       console.error('Erro inesperado ao carregar dados:', erro)
       setMensagem(`Erro inesperado ao carregar dados: ${erro.message}`)
+    }
+  }
+
+  // Atualiza em segundo plano SÓ o que depende dos outros participantes:
+  // a lista de palpites liberados, o ranking e os jogos. Nunca toca no seu
+  // palpite que está sendo digitado, então não há risco de apagar nada.
+  async function atualizarDadosPublicos(userId = session?.user?.id) {
+    if (!userId) return
+
+    try {
+      const [
+        { data: jogosData },
+        { data: palpitesPublicosData },
+        { data: rankingData },
+      ] = await Promise.all([
+        supabase
+          .from('jogos')
+          .select('*')
+          .order('data_hora', { ascending: true }),
+        supabase
+          .from('palpites')
+          .select(`
+            id,
+            user_id,
+            jogo_id,
+            gols_a_palpite,
+            gols_b_palpite,
+            profiles (
+              nome,
+              apelido
+            )
+          `),
+        supabase
+          .from('ranking')
+          .select('*')
+          .order('pontos', { ascending: false }),
+      ])
+
+      const palpitesLiberadosPorJogo = {}
+
+      ;(palpitesPublicosData || []).forEach((palpite) => {
+        const jogoId = String(palpite.jogo_id)
+
+        if (!palpitesLiberadosPorJogo[jogoId]) {
+          palpitesLiberadosPorJogo[jogoId] = []
+        }
+
+        palpitesLiberadosPorJogo[jogoId].push(palpite)
+      })
+
+      if (jogosData) {
+        setJogos(jogosData)
+      }
+
+      setPalpitesPublicos(palpitesLiberadosPorJogo)
+
+      if (rankingData) {
+        setRanking(rankingData)
+      }
+    } catch (erro) {
+      console.error('Erro ao atualizar dados em segundo plano:', erro)
     }
   }
 
@@ -710,39 +793,46 @@ if (jogosComPalpitesPublicos.length > 0) {
 
             <p>{formatarDataHora(jogo.data_hora)}</p>
 
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete="off"
-              value={palpite.gols_a_palpite ?? ''}
-              disabled={comecou}
-              onChange={(evento) =>
-                alterarPalpite(
-                  jogo.id,
-                  'gols_a_palpite',
-                  evento.target.value
-                )
-              }
-            />
+            <div
+              className="campos-placar"
+              style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+            >
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                style={{ flex: 1, width: 'auto', minWidth: 0 }}
+                value={palpite.gols_a_palpite ?? ''}
+                disabled={comecou}
+                onChange={(evento) =>
+                  alterarPalpite(
+                    jogo.id,
+                    'gols_a_palpite',
+                    evento.target.value
+                  )
+                }
+              />
 
-            <span> x </span>
+              <span> x </span>
 
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete="off"
-              value={palpite.gols_b_palpite ?? ''}
-              disabled={comecou}
-              onChange={(evento) =>
-                alterarPalpite(
-                  jogo.id,
-                  'gols_b_palpite',
-                  evento.target.value
-                )
-              }
-            />
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                style={{ flex: 1, width: 'auto', minWidth: 0 }}
+                value={palpite.gols_b_palpite ?? ''}
+                disabled={comecou}
+                onChange={(evento) =>
+                  alterarPalpite(
+                    jogo.id,
+                    'gols_b_palpite',
+                    evento.target.value
+                  )
+                }
+              />
+            </div>
 
             {!comecou ? (
               <button
@@ -1005,33 +1095,40 @@ if (jogosComPalpitesPublicos.length > 0) {
 
                 <p>{formatarDataHora(jogo.data_hora)}</p>
 
-                <input
-                  type="number"
-                  min="0"
-                  value={resultado.gols_a_real}
-                  onChange={(evento) =>
-                    alterarResultado(
-                      jogo.id,
-                      'gols_a_real',
-                      evento.target.value
-                    )
-                  }
-                />
+                <div
+                  className="campos-placar"
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+                >
+                  <input
+                    type="number"
+                    min="0"
+                    style={{ flex: 1, width: 'auto', minWidth: 0 }}
+                    value={resultado.gols_a_real}
+                    onChange={(evento) =>
+                      alterarResultado(
+                        jogo.id,
+                        'gols_a_real',
+                        evento.target.value
+                      )
+                    }
+                  />
 
-                <span> x </span>
+                  <span> x </span>
 
-                <input
-                  type="number"
-                  min="0"
-                  value={resultado.gols_b_real}
-                  onChange={(evento) =>
-                    alterarResultado(
-                      jogo.id,
-                      'gols_b_real',
-                      evento.target.value
-                    )
-                  }
-                />
+                  <input
+                    type="number"
+                    min="0"
+                    style={{ flex: 1, width: 'auto', minWidth: 0 }}
+                    value={resultado.gols_b_real}
+                    onChange={(evento) =>
+                      alterarResultado(
+                        jogo.id,
+                        'gols_b_real',
+                        evento.target.value
+                      )
+                    }
+                  />
+                </div>
 
                 <button
                   type="button"
