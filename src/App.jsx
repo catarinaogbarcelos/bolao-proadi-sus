@@ -820,7 +820,16 @@ function App() {
 
             <div
               className="campos-placar"
-              style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                maxWidth: '220px',
+                border: 'none',
+                borderRadius: 0,
+                padding: 0,
+                background: 'transparent',
+              }}
             >
               <input
                 type="text"
@@ -1122,7 +1131,16 @@ function App() {
 
                 <div
                   className="campos-placar"
-                  style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    maxWidth: '220px',
+                    border: 'none',
+                    borderRadius: 0,
+                    padding: 0,
+                    background: 'transparent',
+                  }}
                 >
                   <input
                     type="number"
