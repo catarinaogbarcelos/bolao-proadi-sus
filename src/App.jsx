@@ -150,30 +150,34 @@ function formatarDataHora(dataHora) {
         return
       }
 
-      const { data: palpitesData, error: palpitesError } = await supabase
-        .from('palpites')
-        .select(`
-          *,
-          profiles (
-            nome,
-            apelido
-          )
-        `)
+const { data: meusPalpitesData, error: meusPalpitesError } = await supabase
+  .from('palpites')
+  .select('id, user_id, jogo_id, gols_a_palpite, gols_b_palpite')
+  .eq('user_id', userId)
 
-      if (palpitesError) {
-        setMensagem(`Erro ao carregar palpites: ${palpitesError.message}`)
-        return
-      }
+if (meusPalpitesError) {
+  setMensagem(`Erro ao carregar seus palpites: ${meusPalpitesError.message}`)
+  return
+}
 
-      const { data: rankingData, error: rankingError } = await supabase
-        .from('ranking')
-        .select('*')
-        .order('pontos', { ascending: false })
+const { data: palpitesPublicosData, error: palpitesPublicosError } = await supabase
+  .from('palpites')
+  .select(`
+    id,
+    user_id,
+    jogo_id,
+    gols_a_palpite,
+    gols_b_palpite,
+    profiles (
+      nome,
+      apelido
+    )
+  `)
 
-      if (rankingError) {
-        setMensagem(`Erro ao carregar ranking: ${rankingError.message}`)
-        return
-      }
+if (palpitesPublicosError) {
+  setMensagem(`Erro ao carregar palpites públicos: ${palpitesPublicosError.message}`)
+  return
+}
 
       const { data: perfilData, error: perfilError } = await supabase
         .from('profiles')
@@ -186,23 +190,25 @@ function formatarDataHora(dataHora) {
         return
       }
 
-      const palpitesPorJogo = {}
-      const palpitesLiberadosPorJogo = {}
+const palpitesPorJogo = {}
+const palpitesLiberadosPorJogo = {}
 
-      ;(palpitesData || []).forEach((palpite) => {
-        if (palpite.user_id === userId) {
-          palpitesPorJogo[palpite.jogo_id] = {
-            gols_a_palpite: palpite.gols_a_palpite,
-            gols_b_palpite: palpite.gols_b_palpite,
-          }
-        }
+;(meusPalpitesData || []).forEach((palpite) => {
+  palpitesPorJogo[String(palpite.jogo_id)] = {
+    gols_a_palpite: palpite.gols_a_palpite,
+    gols_b_palpite: palpite.gols_b_palpite,
+  }
+})
 
-        if (!palpitesLiberadosPorJogo[palpite.jogo_id]) {
-          palpitesLiberadosPorJogo[palpite.jogo_id] = []
-        }
+;(palpitesPublicosData || []).forEach((palpite) => {
+  const jogoId = String(palpite.jogo_id)
 
-        palpitesLiberadosPorJogo[palpite.jogo_id].push(palpite)
-      })
+  if (!palpitesLiberadosPorJogo[jogoId]) {
+    palpitesLiberadosPorJogo[jogoId] = []
+  }
+
+  palpitesLiberadosPorJogo[jogoId].push(palpite)
+})
 
       setJogos(jogosData || [])
       setPalpites(palpitesPorJogo)
@@ -620,10 +626,9 @@ async function salvarPalpite(jogoId) {
       )}
 
       {jogosVisiveis.map((jogo) => {
-        const palpite = palpites[jogo.id] || {}
+        const palpite = palpites[String(jogo.id)] || {}
         const comecou = jogoJaComecou(jogo)
-        const listaPalpitesPublicos = palpitesPublicos[jogo.id] || []
-
+        const listaPalpitesPublicos = palpitesPublicos[String(jogo.id)] || []
         return (
           <section key={jogo.id}>
             <h3 className="jogo-times notranslate" translate="no">
