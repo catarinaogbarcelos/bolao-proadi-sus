@@ -226,50 +226,65 @@ function formatarDataHora(dataHora) {
     }))
   }
 
-  async function salvarPalpite(jogoId) {
-    const palpite = palpites[jogoId]
+async function salvarPalpite(jogoId) {
+  const palpite = palpites[jogoId]
 
-    if (
-      palpite?.gols_a_palpite === '' ||
-      palpite?.gols_b_palpite === '' ||
-      palpite?.gols_a_palpite === undefined ||
-      palpite?.gols_b_palpite === undefined
-    ) {
-      setMensagem('Preencha os dois placares antes de salvar.')
-      return
-    }
+  if (
+    palpite?.gols_a_palpite === '' ||
+    palpite?.gols_b_palpite === '' ||
+    palpite?.gols_a_palpite === undefined ||
+    palpite?.gols_b_palpite === undefined
+  ) {
+    alert('Preencha os dois placares antes de salvar.')
+    setMensagem('Preencha os dois placares antes de salvar.')
+    return
+  }
 
-    setCarregando(true)
-    setMensagem('Salvando palpite...')
+  setCarregando(true)
+  setMensagem('Salvando palpite...')
 
-    try {
-      const { error } = await supabase.from('palpites').upsert(
+  try {
+    const { data, error } = await supabase
+      .from('palpites')
+      .upsert(
         {
           user_id: session.user.id,
           jogo_id: jogoId,
           gols_a_palpite: Number(palpite.gols_a_palpite),
           gols_b_palpite: Number(palpite.gols_b_palpite),
-          atualizado_em: new Date().toISOString(),
         },
         {
           onConflict: 'user_id,jogo_id',
         }
       )
+      .select()
 
-      if (error) {
-        setMensagem(`Erro ao salvar: ${error.message}`)
-        return
-      }
-
-      setMensagem('Palpite salvo com sucesso.')
-      await carregarDados(session.user.id)
-    } catch (erro) {
-      console.error('Erro inesperado ao salvar palpite:', erro)
-      setMensagem(`Erro inesperado ao salvar palpite: ${erro.message}`)
-    } finally {
-      setCarregando(false)
+    if (error) {
+      console.error('Erro ao salvar palpite:', error)
+      alert(`Erro ao salvar palpite: ${error.message}`)
+      setMensagem(`Erro ao salvar palpite: ${error.message}`)
+      return
     }
+
+    console.log('Palpite salvo:', data)
+
+    setPalpites((anteriores) => ({
+      ...anteriores,
+      [jogoId]: {
+        gols_a_palpite: Number(palpite.gols_a_palpite),
+        gols_b_palpite: Number(palpite.gols_b_palpite),
+      },
+    }))
+
+    setMensagem('Palpite salvo com sucesso.')
+  } catch (erro) {
+    console.error('Erro inesperado ao salvar palpite:', erro)
+    alert(`Erro inesperado ao salvar palpite: ${erro.message}`)
+    setMensagem(`Erro inesperado ao salvar palpite: ${erro.message}`)
+  } finally {
+    setCarregando(false)
   }
+}
 
   function alterarNovoJogo(campo, valor) {
     setNovoJogo((anterior) => ({
