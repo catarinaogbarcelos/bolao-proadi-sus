@@ -4,6 +4,7 @@ import './App.css'
 
 const DURACAO_ESTIMADA_JOGO_MS = 2 * 60 * 60 * 1000
 const TEMPO_VISIVEL_APOS_FIM_MS = 1 * 60 * 60 * 1000
+const PREFIXO_STORAGE_PALPITES = 'bolao_palpites_'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -57,7 +58,13 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (session) {
+    if (session?.user?.id) {
+      const palpitesLocais = carregarPalpitesLocais(session.user.id)
+
+      if (Object.keys(palpitesLocais).length > 0) {
+        setPalpites(palpitesLocais)
+      }
+
       carregarDados(session.user.id)
     }
   }, [session])
@@ -70,45 +77,95 @@ function App() {
     return () => clearInterval(intervalo)
   }, [])
 
-function obterDataValida(dataHora) {
-  if (!dataHora) return null
-
-  const texto = String(dataHora)
-
-  const partes = texto.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
-  )
-
-  if (partes) {
-    const ano = Number(partes[1])
-    const mes = Number(partes[2]) - 1
-    const dia = Number(partes[3])
-    const hora = Number(partes[4])
-    const minuto = Number(partes[5])
-    const segundo = Number(partes[6] || 0)
-
-    return new Date(ano, mes, dia, hora, minuto, segundo)
+  function obterChaveStorage(userId) {
+    return `${PREFIXO_STORAGE_PALPITES}${userId}`
   }
 
-  const data = new Date(dataHora)
+  function carregarPalpitesLocais(userId) {
+    try {
+      const texto = localStorage.getItem(obterChaveStorage(userId))
 
-  if (Number.isNaN(data.getTime())) {
-    return null
+      if (!texto) {
+        return {}
+      }
+
+      const dados = JSON.parse(texto)
+
+      if (!dados || typeof dados !== 'object') {
+        return {}
+      }
+
+      return dados
+    } catch (erro) {
+      console.error('Erro ao carregar palpites locais:', erro)
+      return {}
+    }
   }
 
-  return data
-}
-
-function formatarDataHora(dataHora) {
-  const data = obterDataValida(dataHora)
-
-  if (!data) {
-    return 'Data inválida'
+  function salvarPalpitesLocais(userId, novosPalpites) {
+    try {
+      localStorage.setItem(
+        obterChaveStorage(userId),
+        JSON.stringify(novosPalpites)
+      )
+    } catch (erro) {
+      console.error('Erro ao salvar palpites locais:', erro)
+    }
   }
 
-  return data.toLocaleString('pt-BR')
-}   
-  
+  function salvarUmPalpiteLocal(userId, jogoId, palpite) {
+    const palpitesLocais = carregarPalpitesLocais(userId)
+
+    const atualizados = {
+      ...palpitesLocais,
+      [String(jogoId)]: palpite,
+    }
+
+    salvarPalpitesLocais(userId, atualizados)
+  }
+
+  function limparPalpitesLocaisDaTela() {
+    setPalpites({})
+  }
+
+  function obterDataValida(dataHora) {
+    if (!dataHora) return null
+
+    const texto = String(dataHora)
+
+    const partes = texto.match(
+      /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+    )
+
+    if (partes) {
+      const ano = Number(partes[1])
+      const mes = Number(partes[2]) - 1
+      const dia = Number(partes[3])
+      const hora = Number(partes[4])
+      const minuto = Number(partes[5])
+      const segundo = Number(partes[6] || 0)
+
+      return new Date(ano, mes, dia, hora, minuto, segundo)
+    }
+
+    const data = new Date(dataHora)
+
+    if (Number.isNaN(data.getTime())) {
+      return null
+    }
+
+    return data
+  }
+
+  function formatarDataHora(dataHora) {
+    const data = obterDataValida(dataHora)
+
+    if (!data) {
+      return 'Data inválida'
+    }
+
+    return data.toLocaleString('pt-BR')
+  }
 
   function jogoJaComecou(jogo) {
     const inicioJogo = obterDataValida(jogo.data_hora)
@@ -134,183 +191,226 @@ function formatarDataHora(dataHora) {
     return agora < limiteExibicao
   }
 
-async function carregarDados(userId = session?.user?.id) {
-  if (!userId) return
+  function normalizarValorPalpite(valor) {
+    return String(valor).replace(/\D/g, '')
+  }
 
-  setMensagem('Carregando jogos...')
+  async function carregarDados(userId = session?.user?.id) {
+    if (!userId) return
 
-  try {
-    const { data: jogosData, error: jogosError } = await supabase
-      .from('jogos')
-      .select('*')
-      .order('data_hora', { ascending: true })
+    setMensagem('Carregando jogos...')
 
-    if (jogosError) {
-      setMensagem(`Erro ao carregar jogos: ${jogosError.message}`)
-      return
-    }
+    try {
+      const { data: jogosData, error: jogosError } = await supabase
+        .from('jogos')
+        .select('*')
+        .order('data_hora', { ascending: true })
 
-    const { data: meusPalpitesData, error: meusPalpitesError } = await supabase
-      .from('palpites')
-      .select('id, user_id, jogo_id, gols_a_palpite, gols_b_palpite')
-      .eq('user_id', userId)
+      if (jogosError) {
+        setMensagem(`Erro ao carregar jogos: ${jogosError.message}`)
+        return
+      }
 
-    if (meusPalpitesError) {
-      setMensagem(`Erro ao carregar seus palpites: ${meusPalpitesError.message}`)
-      return
-    }
+      const { data: meusPalpitesData, error: meusPalpitesError } = await supabase
+        .from('palpites')
+        .select('id, user_id, jogo_id, gols_a_palpite, gols_b_palpite')
+        .eq('user_id', userId)
 
-    const { data: palpitesPublicosData, error: palpitesPublicosError } = await supabase
-      .from('palpites')
-      .select(`
-        id,
-        user_id,
-        jogo_id,
-        gols_a_palpite,
-        gols_b_palpite,
-        profiles (
-          nome,
-          apelido
+      if (meusPalpitesError) {
+        setMensagem(`Erro ao carregar seus palpites: ${meusPalpitesError.message}`)
+        return
+      }
+
+      const { data: palpitesPublicosData, error: palpitesPublicosError } =
+        await supabase
+          .from('palpites')
+          .select(`
+            id,
+            user_id,
+            jogo_id,
+            gols_a_palpite,
+            gols_b_palpite,
+            profiles (
+              nome,
+              apelido
+            )
+          `)
+
+      if (palpitesPublicosError) {
+        setMensagem(
+          `Erro ao carregar palpites públicos: ${palpitesPublicosError.message}`
         )
-      `)
-
-    if (palpitesPublicosError) {
-      setMensagem(`Erro ao carregar palpites públicos: ${palpitesPublicosError.message}`)
-      return
-    }
-
-    const { data: rankingData, error: rankingError } = await supabase
-      .from('ranking')
-      .select('*')
-      .order('pontos', { ascending: false })
-
-    if (rankingError) {
-      setMensagem(`Erro ao carregar ranking: ${rankingError.message}`)
-      return
-    }
-
-    const { data: perfilData, error: perfilError } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', userId)
-      .maybeSingle()
-
-    if (perfilError) {
-      setMensagem(`Erro ao carregar perfil: ${perfilError.message}`)
-      return
-    }
-
-    const palpitesPorJogo = {}
-    const palpitesLiberadosPorJogo = {}
-
-    ;(meusPalpitesData || []).forEach((palpite) => {
-      const jogoId = String(palpite.jogo_id)
-
-      palpitesPorJogo[jogoId] = {
-        gols_a_palpite: palpite.gols_a_palpite,
-        gols_b_palpite: palpite.gols_b_palpite,
-      }
-    })
-
-    ;(palpitesPublicosData || []).forEach((palpite) => {
-      const jogoId = String(palpite.jogo_id)
-
-      if (!palpitesLiberadosPorJogo[jogoId]) {
-        palpitesLiberadosPorJogo[jogoId] = []
+        return
       }
 
-      palpitesLiberadosPorJogo[jogoId].push(palpite)
-    })
+      const { data: rankingData, error: rankingError } = await supabase
+        .from('ranking')
+        .select('*')
+        .order('pontos', { ascending: false })
 
-    setJogos(jogosData || [])
+      if (rankingError) {
+        setMensagem(`Erro ao carregar ranking: ${rankingError.message}`)
+        return
+      }
 
-    setPalpites((anteriores) => ({
-      ...anteriores,
-      ...palpitesPorJogo,
-    }))
+      const { data: perfilData, error: perfilError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userId)
+        .maybeSingle()
 
-    setPalpitesPublicos(palpitesLiberadosPorJogo)
-    setRanking(rankingData || [])
-    setIsAdmin(perfilData?.is_admin === true)
-    setMensagem('')
-  } catch (erro) {
-    console.error('Erro inesperado ao carregar dados:', erro)
-    setMensagem(`Erro inesperado ao carregar dados: ${erro.message}`)
-  }
-}
+      if (perfilError) {
+        setMensagem(`Erro ao carregar perfil: ${perfilError.message}`)
+        return
+      }
 
-function alterarPalpite(jogoId, campo, valor) {
-  const chaveJogo = String(jogoId)
+      const palpitesPorJogo = {}
+      const palpitesLiberadosPorJogo = {}
 
-  setPalpites((anteriores) => ({
-    ...anteriores,
-    [chaveJogo]: {
-      ...anteriores[chaveJogo],
-      [campo]: valor,
-    },
-  }))
-}
+      ;(meusPalpitesData || []).forEach((palpite) => {
+        const jogoId = String(palpite.jogo_id)
 
-async function salvarPalpite(jogoId) {
-  const chaveJogo = String(jogoId)
-  const palpite = palpites[chaveJogo]
-
-  if (
-    palpite?.gols_a_palpite === '' ||
-    palpite?.gols_b_palpite === '' ||
-    palpite?.gols_a_palpite === undefined ||
-    palpite?.gols_b_palpite === undefined
-  ) {
-    alert('Preencha os dois placares antes de salvar.')
-    setMensagem('Preencha os dois placares antes de salvar.')
-    return
-  }
-
-  const golsA = Number(palpite.gols_a_palpite)
-  const golsB = Number(palpite.gols_b_palpite)
-
-  setCarregando(true)
-  setMensagem('Salvando palpite...')
-
-  try {
-    const { error } = await supabase
-      .from('palpites')
-      .upsert(
-        {
-          user_id: session.user.id,
-          jogo_id: jogoId,
-          gols_a_palpite: golsA,
-          gols_b_palpite: golsB,
-        },
-        {
-          onConflict: 'user_id,jogo_id',
+        palpitesPorJogo[jogoId] = {
+          gols_a_palpite: String(palpite.gols_a_palpite ?? ''),
+          gols_b_palpite: String(palpite.gols_b_palpite ?? ''),
         }
-      )
+      })
 
-    if (error) {
-      console.error('Erro ao salvar palpite:', error)
-      alert(`Erro ao salvar palpite: ${error.message}`)
-      setMensagem(`Erro ao salvar palpite: ${error.message}`)
-      return
+      ;(palpitesPublicosData || []).forEach((palpite) => {
+        const jogoId = String(palpite.jogo_id)
+
+        if (!palpitesLiberadosPorJogo[jogoId]) {
+          palpitesLiberadosPorJogo[jogoId] = []
+        }
+
+        palpitesLiberadosPorJogo[jogoId].push(palpite)
+      })
+
+      const palpitesLocais = carregarPalpitesLocais(userId)
+
+      const palpitesCombinados = {
+        ...palpitesPorJogo,
+        ...palpitesLocais,
+      }
+
+      setJogos(jogosData || [])
+
+      setPalpites((anteriores) => ({
+        ...palpitesCombinados,
+        ...anteriores,
+      }))
+
+      salvarPalpitesLocais(userId, palpitesCombinados)
+
+      setPalpitesPublicos(palpitesLiberadosPorJogo)
+      setRanking(rankingData || [])
+      setIsAdmin(perfilData?.is_admin === true)
+      setMensagem('')
+    } catch (erro) {
+      console.error('Erro inesperado ao carregar dados:', erro)
+      setMensagem(`Erro inesperado ao carregar dados: ${erro.message}`)
     }
+  }
+
+  function alterarPalpite(jogoId, campo, valor) {
+    const chaveJogo = String(jogoId)
+    const valorNormalizado = normalizarValorPalpite(valor)
 
     setPalpites((anteriores) => ({
       ...anteriores,
       [chaveJogo]: {
-        gols_a_palpite: golsA,
-        gols_b_palpite: golsB,
+        ...anteriores[chaveJogo],
+        [campo]: valorNormalizado,
       },
     }))
-
-    setMensagem('Palpite salvo com sucesso.')
-  } catch (erro) {
-    console.error('Erro inesperado ao salvar palpite:', erro)
-    alert(`Erro inesperado ao salvar palpite: ${erro.message}`)
-    setMensagem(`Erro inesperado ao salvar palpite: ${erro.message}`)
-  } finally {
-    setCarregando(false)
   }
-}
+
+  async function salvarPalpite(jogoId) {
+    const chaveJogo = String(jogoId)
+    const palpite = palpites[chaveJogo]
+
+    if (
+      palpite?.gols_a_palpite === '' ||
+      palpite?.gols_b_palpite === '' ||
+      palpite?.gols_a_palpite === undefined ||
+      palpite?.gols_b_palpite === undefined
+    ) {
+      alert('Preencha os dois placares antes de salvar.')
+      setMensagem('Preencha os dois placares antes de salvar.')
+      return
+    }
+
+    const golsA = Number(palpite.gols_a_palpite)
+    const golsB = Number(palpite.gols_b_palpite)
+
+    if (
+      !Number.isInteger(golsA) ||
+      !Number.isInteger(golsB) ||
+      golsA < 0 ||
+      golsB < 0
+    ) {
+      alert('Use apenas números inteiros e positivos no placar.')
+      setMensagem('Use apenas números inteiros e positivos no placar.')
+      return
+    }
+
+    const palpiteParaTela = {
+      gols_a_palpite: String(golsA),
+      gols_b_palpite: String(golsB),
+    }
+
+    setPalpites((anteriores) => ({
+      ...anteriores,
+      [chaveJogo]: palpiteParaTela,
+    }))
+
+    if (session?.user?.id) {
+      salvarUmPalpiteLocal(session.user.id, chaveJogo, palpiteParaTela)
+    }
+
+    setCarregando(true)
+    setMensagem('Salvando palpite...')
+
+    try {
+      const { error } = await supabase
+        .from('palpites')
+        .upsert(
+          {
+            user_id: session.user.id,
+            jogo_id: jogoId,
+            gols_a_palpite: golsA,
+            gols_b_palpite: golsB,
+          },
+          {
+            onConflict: 'user_id,jogo_id',
+          }
+        )
+
+      if (error) {
+        console.error('Erro ao salvar palpite:', error)
+        alert(`Erro ao salvar palpite: ${error.message}`)
+        setMensagem(`Erro ao salvar palpite: ${error.message}`)
+        return
+      }
+
+      setPalpites((anteriores) => ({
+        ...anteriores,
+        [chaveJogo]: palpiteParaTela,
+      }))
+
+      if (session?.user?.id) {
+        salvarUmPalpiteLocal(session.user.id, chaveJogo, palpiteParaTela)
+      }
+
+      setMensagem('Palpite salvo com sucesso.')
+    } catch (erro) {
+      console.error('Erro inesperado ao salvar palpite:', erro)
+      alert(`Erro inesperado ao salvar palpite: ${erro.message}`)
+      setMensagem(`Erro inesperado ao salvar palpite: ${erro.message}`)
+    } finally {
+      setCarregando(false)
+    }
+  }
 
   function alterarNovoJogo(campo, valor) {
     setNovoJogo((anterior) => ({
@@ -338,7 +438,7 @@ async function salvarPalpite(jogoId) {
     try {
       const { error } = await supabase.from('jogos').insert({
         fase: novoJogo.fase.trim(),
-        data_hora: novoJogo.data_hora.replace('T', ' '), 
+        data_hora: novoJogo.data_hora.replace('T', ' '),
         time_a: novoJogo.time_a.trim(),
         time_b: novoJogo.time_b.trim(),
         gols_a_real: null,
@@ -407,10 +507,12 @@ async function salvarPalpite(jogoId) {
   }
 
   function alterarResultado(jogoId, campo, valor) {
+    const chaveJogo = String(jogoId)
+
     setResultados((anteriores) => ({
       ...anteriores,
-      [jogoId]: {
-        ...anteriores[jogoId],
+      [chaveJogo]: {
+        ...anteriores[chaveJogo],
         [campo]: valor,
       },
     }))
@@ -478,7 +580,7 @@ async function salvarPalpite(jogoId) {
 
     setSession(null)
     setJogos([])
-    setPalpites({})
+    limparPalpitesLocaisDaTela()
     setPalpitesPublicos({})
     setRanking([])
     setResultados({})
@@ -635,7 +737,9 @@ async function salvarPalpite(jogoId) {
         Usuário conectado: <strong>{session.user.email}</strong>
       </p>
 
-      <button onClick={sair}>Sair</button>
+      <button type="button" onClick={sair}>
+        Sair
+      </button>
 
       <hr />
 
@@ -646,19 +750,26 @@ async function salvarPalpite(jogoId) {
       )}
 
       {jogosVisiveis.map((jogo) => {
-        const palpite = palpites[String(jogo.id)] || {}
+        const chaveJogo = String(jogo.id)
+        const palpite = palpites[chaveJogo] || {}
         const comecou = jogoJaComecou(jogo)
-        const listaPalpitesPublicos = palpitesPublicos[String(jogo.id)] || []
+        const listaPalpitesPublicos = palpitesPublicos[chaveJogo] || []
+
         return (
           <section key={jogo.id}>
             <h3 className="jogo-times notranslate" translate="no">
-              {(jogo.time_a || "A definir") + " x " + (jogo.time_b || "A definir")}
+              {(jogo.time_a || 'A definir') +
+                ' x ' +
+                (jogo.time_b || 'A definir')}
             </h3>
+
             <p>{formatarDataHora(jogo.data_hora)}</p>
 
             <input
-              type="number"
-              min="0"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
               value={palpite.gols_a_palpite ?? ''}
               disabled={comecou}
               onChange={(evento) =>
@@ -673,8 +784,10 @@ async function salvarPalpite(jogoId) {
             <span> x </span>
 
             <input
-              type="number"
-              min="0"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
               value={palpite.gols_b_palpite ?? ''}
               disabled={comecou}
               onChange={(evento) =>
@@ -688,6 +801,7 @@ async function salvarPalpite(jogoId) {
 
             {!comecou ? (
               <button
+                type="button"
                 onClick={() => salvarPalpite(jogo.id)}
                 disabled={carregando}
               >
@@ -724,58 +838,54 @@ async function salvarPalpite(jogoId) {
 
       <hr />
 
-<h2>Ranking</h2>
+      <h2>Ranking</h2>
 
-{ranking.length === 0 && <p>Nenhuma pontuação calculada ainda.</p>}
+      {ranking.length === 0 && <p>Nenhuma pontuação calculada ainda.</p>}
 
-{ranking.length > 0 && (
-  <table className="tabela-ranking">
-    <thead>
-      <tr>
-        <th>Posição</th>
-        <th>Participante</th>
-        <th>Pontos</th>
-        <th>Zona</th>
-        <th>Placar exato</th>
-        <th>Pontos no mata-mata</th>
-      </tr>
-    </thead>
+      {ranking.length > 0 && (
+        <table className="tabela-ranking">
+          <thead>
+            <tr>
+              <th>Posição</th>
+              <th>Participante</th>
+              <th>Pontos</th>
+              <th>Zona</th>
+              <th>Placar exato</th>
+              <th>Pontos no mata-mata</th>
+            </tr>
+          </thead>
 
-    <tbody>
-      {ranking.map((item, index) => {
-        const zona = obterZonaRanking(index, ranking.length)
+          <tbody>
+            {ranking.map((item, index) => {
+              const zona = obterZonaRanking(index, ranking.length)
 
-        return (
-          <tr key={item.user_id} className={zona.classe}>
-            <td className="col-posicao">{index + 1}º</td>
+              return (
+                <tr key={item.user_id} className={zona.classe}>
+                  <td className="col-posicao">{index + 1}º</td>
 
-            <td className="col-participante">
-              {item.apelido || item.nome || 'Participante'}
-            </td>
+                  <td className="col-participante">
+                    {item.apelido || item.nome || 'Participante'}
+                  </td>
 
-            <td className="col-pontos">
-              {item.pontos}
-            </td>
+                  <td className="col-pontos">{item.pontos}</td>
 
-            <td className="col-zona">
-              <span className="zona-texto">
-                {zona.texto}
-              </span>
-            </td>
+                  <td className="col-zona">
+                    <span className="zona-texto">{zona.texto}</span>
+                  </td>
 
-            <td className="col-placar-exato">
-              {item.placares_exatos}
-            </td>
+                  <td className="col-placar-exato">
+                    {item.placares_exatos}
+                  </td>
 
-            <td className="col-pontos-mata-mata">
-              {item.pontos_mata_mata}
-            </td>
-          </tr>
-        )
-      })}
-    </tbody>
-  </table>
-)}
+                  <td className="col-pontos-mata-mata">
+                    {item.pontos_mata_mata}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
 
       <section className="regras-bolao">
         <h2>Regras do Bolão</h2>
@@ -933,7 +1043,9 @@ async function salvarPalpite(jogoId) {
           {jogos.length === 0 && <p>Nenhum jogo cadastrado.</p>}
 
           {jogos.map((jogo) => {
-            const resultado = resultados[jogo.id] || {
+            const chaveJogo = String(jogo.id)
+
+            const resultado = resultados[chaveJogo] || {
               gols_a_real: jogo.gols_a_real ?? '',
               gols_b_real: jogo.gols_b_real ?? '',
             }
@@ -977,6 +1089,7 @@ async function salvarPalpite(jogoId) {
                 />
 
                 <button
+                  type="button"
                   onClick={() =>
                     salvarResultado(
                       jogo.id,
