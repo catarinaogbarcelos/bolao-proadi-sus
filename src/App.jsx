@@ -56,8 +56,8 @@ function App() {
     }
   }, [])
 
-  // Só recarrega os dados quando o USUÁRIO muda (entrar/sair),
-  // e não a cada renovação automática de login do Supabase.
+  // Carrega os dados apenas quando muda o usuário logado.
+  // Isso evita recarregar tudo a cada renovação automática da sessão.
   useEffect(() => {
     if (session?.user?.id) {
       carregarDados(session.user.id)
@@ -65,6 +65,7 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id])
 
+  // Atualiza o relógio da tela.
   useEffect(() => {
     const intervalo = setInterval(() => {
       setAgora(new Date())
@@ -73,8 +74,8 @@ function App() {
     return () => clearInterval(intervalo)
   }, [])
 
-  // Atualiza sozinho, de tempos em tempos, os palpites dos participantes e o
-  // ranking, sem precisar recarregar a página na mão.
+  // Atualiza automaticamente jogos, ranking e palpites públicos.
+  // Não mexe nos palpites individuais que a pessoa está digitando.
   useEffect(() => {
     if (!session?.user?.id) return
 
@@ -86,7 +87,7 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id])
 
-  // Também atualiza assim que você volta para a aba ou reabre o app.
+  // Atualiza quando a pessoa volta para a aba/app.
   useEffect(() => {
     if (!session?.user?.id) return
 
@@ -149,15 +150,15 @@ function App() {
     return data.toLocaleString('pt-BR')
   }
 
-  function jogoJaComecou(jogo) {
+  function jogoJaComecouNoMomento(jogo, momento) {
     const inicioJogo = obterDataValida(jogo.data_hora)
 
     if (!inicioJogo) return false
 
-    return inicioJogo <= agora
+    return inicioJogo <= momento
   }
 
-  function deveMostrarJogo(jogo) {
+  function deveMostrarJogoNoMomento(jogo, momento) {
     const inicioJogo = obterDataValida(jogo.data_hora)
 
     if (!inicioJogo) {
@@ -170,11 +171,75 @@ function App() {
         TEMPO_VISIVEL_APOS_FIM_MS
     )
 
-    return agora < limiteExibicao
+    return momento < limiteExibicao
+  }
+
+  function jogoJaComecou(jogo) {
+    return jogoJaComecouNoMomento(jogo, agora)
+  }
+
+  function deveMostrarJogo(jogo) {
+    return deveMostrarJogoNoMomento(jogo, agora)
   }
 
   function normalizarValorPalpite(valor) {
     return String(valor).replace(/\D/g, '')
+  }
+
+  function montarPalpitesPublicosPorJogo(listaPalpites) {
+    const palpitesLiberadosPorJogo = {}
+
+    ;(listaPalpites || []).forEach((palpite) => {
+      const jogoId = String(palpite.jogo_id)
+
+      if (!palpitesLiberadosPorJogo[jogoId]) {
+        palpitesLiberadosPorJogo[jogoId] = []
+      }
+
+      palpitesLiberadosPorJogo[jogoId].push(palpite)
+    })
+
+    return palpitesLiberadosPorJogo
+  }
+
+  async function buscarPalpitesPublicosPorJogos(jogosBase) {
+    const momentoAtual = new Date()
+
+    const idsJogosPublicos = (jogosBase || [])
+      .filter(
+        (jogo) =>
+          jogoJaComecouNoMomento(jogo, momentoAtual) &&
+          deveMostrarJogoNoMomento(jogo, momentoAtual)
+      )
+      .map((jogo) => jogo.id)
+
+    if (idsJogosPublicos.length === 0) {
+      return {}
+    }
+
+    const { data, error } = await supabase
+      .from('palpites')
+      .select(`
+        id,
+        user_id,
+        jogo_id,
+        gols_a_palpite,
+        gols_b_palpite,
+        profiles (
+          nome,
+          apelido
+        )
+      `)
+      .in('jogo_id', idsJogosPublicos)
+      .order('jogo_id', { ascending: true })
+      .order('id', { ascending: true })
+      .range(0, 5000)
+
+    if (error) {
+      throw error
+    }
+
+    return montarPalpitesPublicosPorJogo(data || [])
   }
 
   async function carregarDados(userId = session?.user?.id) {
@@ -193,34 +258,16 @@ function App() {
         return
       }
 
-      const { data: meusPalpitesData, error: meusPalpitesError } = await supabase
-        .from('palpites')
-        .select('id, user_id, jogo_id, gols_a_palpite, gols_b_palpite')
-        .eq('user_id', userId)
-
-      if (meusPalpitesError) {
-        setMensagem(`Erro ao carregar seus palpites: ${meusPalpitesError.message}`)
-        return
-      }
-
-      const { data: palpitesPublicosData, error: palpitesPublicosError } =
+      const { data: meusPalpitesData, error: meusPalpitesError } =
         await supabase
           .from('palpites')
-          .select(`
-            id,
-            user_id,
-            jogo_id,
-            gols_a_palpite,
-            gols_b_palpite,
-            profiles (
-              nome,
-              apelido
-            )
-          `)
+          .select('id, user_id, jogo_id, gols_a_palpite, gols_b_palpite')
+          .eq('user_id', userId)
+          .range(0, 5000)
 
-      if (palpitesPublicosError) {
+      if (meusPalpitesError) {
         setMensagem(
-          `Erro ao carregar palpites públicos: ${palpitesPublicosError.message}`
+          `Erro ao carregar seus palpites: ${meusPalpitesError.message}`
         )
         return
       }
@@ -229,6 +276,7 @@ function App() {
         .from('ranking')
         .select('*')
         .order('pontos', { ascending: false })
+        .range(0, 5000)
 
       if (rankingError) {
         setMensagem(`Erro ao carregar ranking: ${rankingError.message}`)
@@ -247,7 +295,6 @@ function App() {
       }
 
       const palpitesPorJogo = {}
-      const palpitesLiberadosPorJogo = {}
 
       ;(meusPalpitesData || []).forEach((palpite) => {
         const jogoId = String(palpite.jogo_id)
@@ -258,20 +305,13 @@ function App() {
         }
       })
 
-      ;(palpitesPublicosData || []).forEach((palpite) => {
-        const jogoId = String(palpite.jogo_id)
-
-        if (!palpitesLiberadosPorJogo[jogoId]) {
-          palpitesLiberadosPorJogo[jogoId] = []
-        }
-
-        palpitesLiberadosPorJogo[jogoId].push(palpite)
-      })
+      const palpitesLiberadosPorJogo =
+        await buscarPalpitesPublicosPorJogos(jogosData || [])
 
       setJogos(jogosData || [])
 
-      // O BANCO é a fonte de verdade: o que veio do banco vence o estado antigo
-      // da tela. Palpites ainda não salvos (que só existem na tela) são preservados.
+      // O banco vence o estado antigo para palpites já salvos.
+      // Palpites que estão apenas sendo digitados continuam preservados.
       setPalpites((anteriores) => ({
         ...anteriores,
         ...palpitesPorJogo,
@@ -287,64 +327,43 @@ function App() {
     }
   }
 
-  // Atualiza em segundo plano SÓ o que depende dos outros participantes:
-  // a lista de palpites liberados, o ranking e os jogos. Nunca toca no seu
-  // palpite que está sendo digitado, então não há risco de apagar nada.
   async function atualizarDadosPublicos(userId = session?.user?.id) {
     if (!userId) return
 
     try {
       const [
-        { data: jogosData },
-        { data: palpitesPublicosData },
-        { data: rankingData },
+        { data: jogosData, error: jogosError },
+        { data: rankingData, error: rankingError },
       ] = await Promise.all([
         supabase
           .from('jogos')
           .select('*')
           .order('data_hora', { ascending: true }),
         supabase
-          .from('palpites')
-          .select(`
-            id,
-            user_id,
-            jogo_id,
-            gols_a_palpite,
-            gols_b_palpite,
-            profiles (
-              nome,
-              apelido
-            )
-          `),
-        supabase
           .from('ranking')
           .select('*')
-          .order('pontos', { ascending: false }),
+          .order('pontos', { ascending: false })
+          .range(0, 5000),
       ])
 
-      const palpitesLiberadosPorJogo = {}
-
-      ;(palpitesPublicosData || []).forEach((palpite) => {
-        const jogoId = String(palpite.jogo_id)
-
-        if (!palpitesLiberadosPorJogo[jogoId]) {
-          palpitesLiberadosPorJogo[jogoId] = []
-        }
-
-        palpitesLiberadosPorJogo[jogoId].push(palpite)
-      })
-
-      if (jogosData) {
-        setJogos(jogosData)
+      if (jogosError) {
+        console.error('Erro ao atualizar jogos:', jogosError)
+        return
       }
 
+      if (rankingError) {
+        console.error('Erro ao atualizar ranking:', rankingError)
+        return
+      }
+
+      const palpitesLiberadosPorJogo =
+        await buscarPalpitesPublicosPorJogos(jogosData || [])
+
+      setJogos(jogosData || [])
       setPalpitesPublicos(palpitesLiberadosPorJogo)
-
-      if (rankingData) {
-        setRanking(rankingData)
-      }
+      setRanking(rankingData || [])
     } catch (erro) {
-      console.error('Erro ao atualizar dados em segundo plano:', erro)
+      console.error('Erro ao atualizar dados públicos:', erro)
     }
   }
 
@@ -431,6 +450,12 @@ function App() {
       }))
 
       setMensagem('Palpite salvo com sucesso.')
+
+      const jogoAtual = jogos.find((jogo) => String(jogo.id) === chaveJogo)
+
+      if (jogoAtual && jogoJaComecouNoMomento(jogoAtual, new Date())) {
+        await atualizarDadosPublicos(session.user.id)
+      }
     } catch (erro) {
       console.error('Erro inesperado ao salvar palpite:', erro)
       alert(`Erro inesperado ao salvar palpite: ${erro.message}`)
