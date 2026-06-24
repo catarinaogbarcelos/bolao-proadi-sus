@@ -134,106 +134,126 @@ function formatarDataHora(dataHora) {
     return agora < limiteExibicao
   }
 
-  async function carregarDados(userId = session?.user?.id) {
-    if (!userId) return
+async function carregarDados(userId = session?.user?.id) {
+  if (!userId) return
 
-    setMensagem('Carregando jogos...')
+  setMensagem('Carregando jogos...')
 
-    try {
-      const { data: jogosData, error: jogosError } = await supabase
-        .from('jogos')
-        .select('*')
-        .order('data_hora', { ascending: true })
+  try {
+    const { data: jogosData, error: jogosError } = await supabase
+      .from('jogos')
+      .select('*')
+      .order('data_hora', { ascending: true })
 
-      if (jogosError) {
-        setMensagem(`Erro ao carregar jogos: ${jogosError.message}`)
-        return
-      }
-
-const { data: meusPalpitesData, error: meusPalpitesError } = await supabase
-  .from('palpites')
-  .select('id, user_id, jogo_id, gols_a_palpite, gols_b_palpite')
-  .eq('user_id', userId)
-
-if (meusPalpitesError) {
-  setMensagem(`Erro ao carregar seus palpites: ${meusPalpitesError.message}`)
-  return
-}
-
-const { data: palpitesPublicosData, error: palpitesPublicosError } = await supabase
-  .from('palpites')
-  .select(`
-    id,
-    user_id,
-    jogo_id,
-    gols_a_palpite,
-    gols_b_palpite,
-    profiles (
-      nome,
-      apelido
-    )
-  `)
-
-if (palpitesPublicosError) {
-  setMensagem(`Erro ao carregar palpites públicos: ${palpitesPublicosError.message}`)
-  return
-}
-
-      const { data: perfilData, error: perfilError } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', userId)
-        .single()
-
-      if (perfilError) {
-        setMensagem(`Erro ao carregar perfil: ${perfilError.message}`)
-        return
-      }
-
-const palpitesPorJogo = {}
-const palpitesLiberadosPorJogo = {}
-
-;(meusPalpitesData || []).forEach((palpite) => {
-  palpitesPorJogo[String(palpite.jogo_id)] = {
-    gols_a_palpite: palpite.gols_a_palpite,
-    gols_b_palpite: palpite.gols_b_palpite,
-  }
-})
-
-;(palpitesPublicosData || []).forEach((palpite) => {
-  const jogoId = String(palpite.jogo_id)
-
-  if (!palpitesLiberadosPorJogo[jogoId]) {
-    palpitesLiberadosPorJogo[jogoId] = []
-  }
-
-  palpitesLiberadosPorJogo[jogoId].push(palpite)
-})
-
-      setJogos(jogosData || [])
-      setPalpites(palpitesPorJogo)
-      setPalpitesPublicos(palpitesLiberadosPorJogo)
-      setRanking(rankingData || [])
-      setIsAdmin(perfilData?.is_admin === true)
-      setMensagem('')
-    } catch (erro) {
-      console.error('Erro inesperado ao carregar dados:', erro)
-      setMensagem(`Erro inesperado ao carregar dados: ${erro.message}`)
+    if (jogosError) {
+      setMensagem(`Erro ao carregar jogos: ${jogosError.message}`)
+      return
     }
-  }
 
-  function alterarPalpite(jogoId, campo, valor) {
+    const { data: meusPalpitesData, error: meusPalpitesError } = await supabase
+      .from('palpites')
+      .select('id, user_id, jogo_id, gols_a_palpite, gols_b_palpite')
+      .eq('user_id', userId)
+
+    if (meusPalpitesError) {
+      setMensagem(`Erro ao carregar seus palpites: ${meusPalpitesError.message}`)
+      return
+    }
+
+    const { data: palpitesPublicosData, error: palpitesPublicosError } = await supabase
+      .from('palpites')
+      .select(`
+        id,
+        user_id,
+        jogo_id,
+        gols_a_palpite,
+        gols_b_palpite,
+        profiles (
+          nome,
+          apelido
+        )
+      `)
+
+    if (palpitesPublicosError) {
+      setMensagem(`Erro ao carregar palpites públicos: ${palpitesPublicosError.message}`)
+      return
+    }
+
+    const { data: rankingData, error: rankingError } = await supabase
+      .from('ranking')
+      .select('*')
+      .order('pontos', { ascending: false })
+
+    if (rankingError) {
+      setMensagem(`Erro ao carregar ranking: ${rankingError.message}`)
+      return
+    }
+
+    const { data: perfilData, error: perfilError } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (perfilError) {
+      setMensagem(`Erro ao carregar perfil: ${perfilError.message}`)
+      return
+    }
+
+    const palpitesPorJogo = {}
+    const palpitesLiberadosPorJogo = {}
+
+    ;(meusPalpitesData || []).forEach((palpite) => {
+      const jogoId = String(palpite.jogo_id)
+
+      palpitesPorJogo[jogoId] = {
+        gols_a_palpite: palpite.gols_a_palpite,
+        gols_b_palpite: palpite.gols_b_palpite,
+      }
+    })
+
+    ;(palpitesPublicosData || []).forEach((palpite) => {
+      const jogoId = String(palpite.jogo_id)
+
+      if (!palpitesLiberadosPorJogo[jogoId]) {
+        palpitesLiberadosPorJogo[jogoId] = []
+      }
+
+      palpitesLiberadosPorJogo[jogoId].push(palpite)
+    })
+
+    setJogos(jogosData || [])
+
     setPalpites((anteriores) => ({
       ...anteriores,
-      [jogoId]: {
-        ...anteriores[jogoId],
-        [campo]: valor,
-      },
+      ...palpitesPorJogo,
     }))
+
+    setPalpitesPublicos(palpitesLiberadosPorJogo)
+    setRanking(rankingData || [])
+    setIsAdmin(perfilData?.is_admin === true)
+    setMensagem('')
+  } catch (erro) {
+    console.error('Erro inesperado ao carregar dados:', erro)
+    setMensagem(`Erro inesperado ao carregar dados: ${erro.message}`)
   }
+}
+
+function alterarPalpite(jogoId, campo, valor) {
+  const chaveJogo = String(jogoId)
+
+  setPalpites((anteriores) => ({
+    ...anteriores,
+    [chaveJogo]: {
+      ...anteriores[chaveJogo],
+      [campo]: valor,
+    },
+  }))
+}
 
 async function salvarPalpite(jogoId) {
-  const palpite = palpites[jogoId]
+  const chaveJogo = String(jogoId)
+  const palpite = palpites[chaveJogo]
 
   if (
     palpite?.gols_a_palpite === '' ||
@@ -246,24 +266,26 @@ async function salvarPalpite(jogoId) {
     return
   }
 
+  const golsA = Number(palpite.gols_a_palpite)
+  const golsB = Number(palpite.gols_b_palpite)
+
   setCarregando(true)
   setMensagem('Salvando palpite...')
 
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('palpites')
       .upsert(
         {
           user_id: session.user.id,
           jogo_id: jogoId,
-          gols_a_palpite: Number(palpite.gols_a_palpite),
-          gols_b_palpite: Number(palpite.gols_b_palpite),
+          gols_a_palpite: golsA,
+          gols_b_palpite: golsB,
         },
         {
           onConflict: 'user_id,jogo_id',
         }
       )
-      .select()
 
     if (error) {
       console.error('Erro ao salvar palpite:', error)
@@ -272,13 +294,11 @@ async function salvarPalpite(jogoId) {
       return
     }
 
-    console.log('Palpite salvo:', data)
-
     setPalpites((anteriores) => ({
       ...anteriores,
-      [jogoId]: {
-        gols_a_palpite: Number(palpite.gols_a_palpite),
-        gols_b_palpite: Number(palpite.gols_b_palpite),
+      [chaveJogo]: {
+        gols_a_palpite: golsA,
+        gols_b_palpite: golsB,
       },
     }))
 
