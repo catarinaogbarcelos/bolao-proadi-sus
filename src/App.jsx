@@ -647,6 +647,10 @@ function App() {
 
         <h1 className="titulo-acessivel">Bolão do Proadi-SUS</h1>
 
+      <p style={{ fontSize: '12px', color: 'red' }}>
+        Versão teste palpites 24/06 - 13h40
+      </p>
+
         <section>
           <h2>Criar conta</h2>
 
