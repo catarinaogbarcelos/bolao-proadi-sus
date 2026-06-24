@@ -170,27 +170,38 @@ function App() {
         return
       }
 
-      const { data: palpitesPublicosData, error: palpitesPublicosError } =
-        await supabase
-          .from('palpites')
-          .select(`
-            id,
-            user_id,
-            jogo_id,
-            gols_a_palpite,
-            gols_b_palpite,
-            profiles (
-              nome,
-              apelido
-            )
-          `)
+const jogosComPalpitesPublicos = (jogosData || [])
+  .filter((jogo) => jogoJaComecou(jogo) && deveMostrarJogo(jogo))
+  .map((jogo) => jogo.id)
 
-      if (palpitesPublicosError) {
-        setMensagem(
-          `Erro ao carregar palpites públicos: ${palpitesPublicosError.message}`
-        )
-        return
-      }
+let palpitesPublicosData = []
+
+if (jogosComPalpitesPublicos.length > 0) {
+  const { data, error } = await supabase
+    .from('palpites')
+    .select(`
+      id,
+      user_id,
+      jogo_id,
+      gols_a_palpite,
+      gols_b_palpite,
+      profiles (
+        nome,
+        apelido
+      )
+    `)
+    .in('jogo_id', jogosComPalpitesPublicos)
+    .order('jogo_id', { ascending: true })
+    .order('id', { ascending: true })
+
+  if (error) {
+    setMensagem(`Erro ao carregar palpites públicos: ${error.message}`)
+    return
+  }
+
+  palpitesPublicosData = data || []
+}
+
 
       const { data: rankingData, error: rankingError } = await supabase
         .from('ranking')
