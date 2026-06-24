@@ -704,41 +704,58 @@ async function salvarPalpite(jogoId) {
 
       <hr />
 
-      <h2>Ranking</h2>
+<h2>Ranking</h2>
 
-      {ranking.length === 0 && <p>Nenhuma pontuação calculada ainda.</p>}
+{ranking.length === 0 && <p>Nenhuma pontuação calculada ainda.</p>}
 
-      {ranking.length > 0 && (
-        <table className="tabela-ranking">
-          <thead>
-            <tr>
-              <th>Posição</th>
-              <th>Participante</th>
-              <th>Zona</th>
-              <th>Pontos</th>
-              <th>Placar exato</th>
-              <th>Pontos no mata-mata</th>
-            </tr>
-          </thead>
+{ranking.length > 0 && (
+  <table className="tabela-ranking">
+    <thead>
+      <tr>
+        <th>Posição</th>
+        <th>Participante</th>
+        <th>Pontos</th>
+        <th>Zona</th>
+        <th>Placar exato</th>
+        <th>Pontos no mata-mata</th>
+      </tr>
+    </thead>
 
-          <tbody>
-            {ranking.map((item, index) => {
-              const zona = obterZonaRanking(index, ranking.length)
+    <tbody>
+      {ranking.map((item, index) => {
+        const zona = obterZonaRanking(index, ranking.length)
 
-              return (
-                <tr key={item.user_id} className={zona.classe}>
-                  <td>{index + 1}º</td>
-                  <td>{item.apelido || item.nome || 'Participante'}</td>
-                  <td>{zona.texto}</td>
-                  <td>{item.pontos}</td>
-                  <td>{item.placares_exatos}</td>
-                  <td>{item.pontos_mata_mata}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      )}
+        return (
+          <tr key={item.user_id} className={zona.classe}>
+            <td className="col-posicao">{index + 1}º</td>
+
+            <td className="col-participante">
+              {item.apelido || item.nome || 'Participante'}
+            </td>
+
+            <td className="col-pontos">
+              {item.pontos}
+            </td>
+
+            <td className="col-zona">
+              <span className="zona-texto">
+                {zona.texto}
+              </span>
+            </td>
+
+            <td className="col-placar-exato">
+              {item.placares_exatos}
+            </td>
+
+            <td className="col-pontos-mata-mata">
+              {item.pontos_mata_mata}
+            </td>
+          </tr>
+        )
+      })}
+    </tbody>
+  </table>
+)}
 
       <section className="regras-bolao">
         <h2>Regras do Bolão</h2>

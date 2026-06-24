@@ -440,9 +440,56 @@ main > p:last-child {
   margin-bottom: 1rem;
 }
 
-.tabela-ranking td:nth-child(3) {
-  font-weight: 800;
-  white-space: nowrap;
+.tabela-ranking {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.tabela-ranking th,
+.tabela-ranking td {
+  padding: 12px 10px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.col-posicao {
+  width: 12%;
+  font-weight: 700;
+}
+
+.col-participante {
+  width: 28%;
+}
+
+.col-pontos {
+  width: 12%;
+  font-weight: 700;
+  text-align: center;
+}
+
+.col-zona {
+  width: 20%;
+  font-weight: 700;
+}
+
+.col-placar-exato {
+  width: 14%;
+  text-align: center;
+}
+
+.col-pontos-mata-mata {
+  width: 14%;
+  text-align: center;
+}
+
+.zona-texto {
+  display: inline-block;
+  max-width: 100%;
+  line-height: 1.1;
+  white-space: normal;
 }
 
 /* G3 */
@@ -486,20 +533,44 @@ main > p:last-child {
 }
 
 /* Responsividade da tabela */
-@media (max-width: 720px) {
+@media (max-width: 700px) {
   .tabela-ranking {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+    font-size: 13px;
   }
 
   .tabela-ranking th,
   .tabela-ranking td {
-    min-width: 120px;
+    padding: 10px 6px;
   }
 
-  .tabela-ranking th:nth-child(3),
-  .tabela-ranking td:nth-child(3) {
-    min-width: 260px;
+  .col-posicao {
+    width: 15%;
+  }
+
+  .col-participante {
+    width: 38%;
+  }
+
+  .col-pontos {
+    width: 15%;
+    text-align: center;
+  }
+
+  .col-zona {
+    width: 32%;
+  }
+
+  .col-placar-exato,
+  .col-pontos-mata-mata,
+  .tabela-ranking th:nth-child(5),
+  .tabela-ranking th:nth-child(6),
+  .tabela-ranking td:nth-child(5),
+  .tabela-ranking td:nth-child(6) {
+    display: none;
+  }
+
+  .zona-texto {
+    font-size: 12px;
+    line-height: 1.05;
   }
 }
