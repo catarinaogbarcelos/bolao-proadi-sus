@@ -4,7 +4,6 @@ import './App.css'
 
 const DURACAO_ESTIMADA_JOGO_MS = 2 * 60 * 60 * 1000
 const TEMPO_VISIVEL_APOS_FIM_MS = 1 * 60 * 60 * 1000
-const PREFIXO_STORAGE_PALPITES = 'bolao_palpites_'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -57,17 +56,14 @@ function App() {
     }
   }, [])
 
+  // Só recarrega os dados quando o USUÁRIO muda (entrar/sair),
+  // e não a cada renovação automática de login do Supabase.
   useEffect(() => {
     if (session?.user?.id) {
-      const palpitesLocais = carregarPalpitesLocais(session.user.id)
-
-      if (Object.keys(palpitesLocais).length > 0) {
-        setPalpites(palpitesLocais)
-      }
-
       carregarDados(session.user.id)
     }
-  }, [session])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id])
 
   useEffect(() => {
     const intervalo = setInterval(() => {
@@ -77,54 +73,7 @@ function App() {
     return () => clearInterval(intervalo)
   }, [])
 
-  function obterChaveStorage(userId) {
-    return `${PREFIXO_STORAGE_PALPITES}${userId}`
-  }
-
-  function carregarPalpitesLocais(userId) {
-    try {
-      const texto = localStorage.getItem(obterChaveStorage(userId))
-
-      if (!texto) {
-        return {}
-      }
-
-      const dados = JSON.parse(texto)
-
-      if (!dados || typeof dados !== 'object') {
-        return {}
-      }
-
-      return dados
-    } catch (erro) {
-      console.error('Erro ao carregar palpites locais:', erro)
-      return {}
-    }
-  }
-
-  function salvarPalpitesLocais(userId, novosPalpites) {
-    try {
-      localStorage.setItem(
-        obterChaveStorage(userId),
-        JSON.stringify(novosPalpites)
-      )
-    } catch (erro) {
-      console.error('Erro ao salvar palpites locais:', erro)
-    }
-  }
-
-  function salvarUmPalpiteLocal(userId, jogoId, palpite) {
-    const palpitesLocais = carregarPalpitesLocais(userId)
-
-    const atualizados = {
-      ...palpitesLocais,
-      [String(jogoId)]: palpite,
-    }
-
-    salvarPalpitesLocais(userId, atualizados)
-  }
-
-  function limparPalpitesLocaisDaTela() {
+  function limparPalpites() {
     setPalpites({})
   }
 
@@ -286,21 +235,14 @@ function App() {
         palpitesLiberadosPorJogo[jogoId].push(palpite)
       })
 
-      const palpitesLocais = carregarPalpitesLocais(userId)
-
-      const palpitesCombinados = {
-        ...palpitesPorJogo,
-        ...palpitesLocais,
-      }
-
       setJogos(jogosData || [])
 
+      // O BANCO é a fonte de verdade: o que veio do banco vence o estado antigo
+      // da tela. Palpites ainda não salvos (que só existem na tela) são preservados.
       setPalpites((anteriores) => ({
-        ...palpitesCombinados,
         ...anteriores,
+        ...palpitesPorJogo,
       }))
-
-      salvarPalpitesLocais(userId, palpitesCombinados)
 
       setPalpitesPublicos(palpitesLiberadosPorJogo)
       setRanking(rankingData || [])
@@ -364,10 +306,6 @@ function App() {
       [chaveJogo]: palpiteParaTela,
     }))
 
-    if (session?.user?.id) {
-      salvarUmPalpiteLocal(session.user.id, chaveJogo, palpiteParaTela)
-    }
-
     setCarregando(true)
     setMensagem('Salvando palpite...')
 
@@ -397,10 +335,6 @@ function App() {
         ...anteriores,
         [chaveJogo]: palpiteParaTela,
       }))
-
-      if (session?.user?.id) {
-        salvarUmPalpiteLocal(session.user.id, chaveJogo, palpiteParaTela)
-      }
 
       setMensagem('Palpite salvo com sucesso.')
     } catch (erro) {
@@ -580,7 +514,7 @@ function App() {
 
     setSession(null)
     setJogos([])
-    limparPalpitesLocaisDaTela()
+    limparPalpites()
     setPalpitesPublicos({})
     setRanking([])
     setResultados({})
@@ -646,10 +580,6 @@ function App() {
         />
 
         <h1 className="titulo-acessivel">Bolão do Proadi-SUS</h1>
-
-      <p style={{ fontSize: '12px', color: 'red' }}>
-        Versão teste palpites 24/06 - 13h40
-      </p>
 
         <section>
           <h2>Criar conta</h2>
