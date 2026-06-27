@@ -208,7 +208,7 @@ function App() {
   async function carregarBoletimDiario() {
     const { data, error } = await supabase
       .from('boletins_diarios')
-      .select('data_boletim, titulo, corpo, criado_em')
+      .select('data_boletim, titulo, corpo, dados, criado_em')
       .order('data_boletim', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -926,13 +926,21 @@ function App() {
 
     <hr />
 
-    {boletim && (
-      <section className="card-boletim">
-        <h2>{boletim.titulo}</h2>
-        <pre>{boletim.corpo}</pre>
-      </section>
-    )}
+{boletim && (
+  <section className="card-boletim">
+    <h2>{boletim.titulo}</h2>
 
+    {boletim.dados?.secoes?.length ? (
+      <div className="boletim-secoes">
+        {boletim.dados.secoes.map((secao, i) => (
+          <BoletimCard key={i} secao={secao} />
+        ))}
+      </div>
+    ) : (
+      <pre>{boletim.corpo}</pre>
+    )}
+  </section>
+)}
     {erroBoletim && <p>{erroBoletim}</p>}
 
     <h2>Ranking</h2>
@@ -1222,6 +1230,29 @@ function App() {
 
       {mensagem && <p>{mensagem}</p>}
     </main>
+  )
+}
+
+function BoletimCard({ secao }) {
+  if (secao.tipo === 'frase') {
+    return <p className="boletim-frase">🗣️ {secao.texto}</p>
+  }
+
+  return (
+    <article className={`boletim-card ${secao.destaque ? 'boletim-card--destaque' : ''}`}>
+      <h3 className="boletim-card-titulo">
+        <span className="boletim-card-emoji" aria-hidden="true">{secao.emoji}</span>
+        {secao.titulo}
+      </h3>
+
+      {secao.tipo === 'texto' && <p>{secao.texto}</p>}
+
+      {secao.tipo === 'lista' && (
+        <ul className="boletim-lista">
+          {secao.itens.map((item, i) => <li key={i}>{item}</li>)}
+        </ul>
+      )}
+    </article>
   )
 }
 
