@@ -574,3 +574,26 @@ main > p:last-child {
     line-height: 1.05;
   }
 }
+
+.card-boletim {
+  background: #fff8dc;
+  border: 2px solid #f2c94c;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 24px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.card-boletim h2 {
+  margin-top: 0;
+  color: #1f4d2b;
+}
+
+.card-boletim pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 0;
+}

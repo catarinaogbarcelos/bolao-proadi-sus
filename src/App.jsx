@@ -31,6 +31,9 @@ function App() {
   const [carregando, setCarregando] = useState(false)
   const [agora, setAgora] = useState(new Date())
 
+  const [boletim, setBoletim] = useState(null)
+  const [erroBoletim, setErroBoletim] = useState('')
+
   useEffect(() => {
     async function carregarSessao() {
       const { data, error } = await supabase.auth.getSession()
@@ -61,6 +64,7 @@ function App() {
   useEffect(() => {
     if (session?.user?.id) {
       carregarDados(session.user.id)
+      carregarBoletimDiario()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id])
@@ -201,7 +205,22 @@ function App() {
 
     return palpitesLiberadosPorJogo
   }
+  async function carregarBoletimDiario() {
+    const { data, error } = await supabase
+      .from('boletins_diarios')
+      .select('data_boletim, titulo, corpo, criado_em')
+      .order('data_boletim', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
+    if (error) {
+      console.error('Erro ao carregar boletim:', error)
+      setErroBoletim('Não foi possível carregar o boletim diário.')
+      return
+    }
+
+    setBoletim(data)
+  }
   async function buscarPalpitesPublicosPorJogos(jogosBase) {
     const momentoAtual = new Date()
 
@@ -905,9 +924,18 @@ function App() {
         )
       })}
 
-      <hr />
+    <hr />
 
-      <h2>Ranking</h2>
+    {boletim && (
+      <section className="card-boletim">
+        <h2>{boletim.titulo}</h2>
+        <pre>{boletim.corpo}</pre>
+      </section>
+    )}
+
+    {erroBoletim && <p>{erroBoletim}</p>}
+
+    <h2>Ranking</h2>
 
       {ranking.length === 0 && <p>Nenhuma pontuação calculada ainda.</p>}
 
