@@ -603,6 +603,10 @@ main > p:last-child {
   flex-direction: column;
   gap: 16px;
   margin-top: 8px;
+  background: none;   /* neutraliza o "section div" */
+  border: none;
+  padding: 0;
+  border-radius: 0;
 }
 
 .boletim-frase {
