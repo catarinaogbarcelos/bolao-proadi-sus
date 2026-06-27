@@ -651,3 +651,9 @@ main > p:last-child {
 .boletim-lista li {
   line-height: 1.45;
 }
+
+.boletim-rodape {
+  margin: 8px 0 0;
+  font-style: italic;
+  opacity: 0.8;
+}

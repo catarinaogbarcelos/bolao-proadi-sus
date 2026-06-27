@@ -1247,11 +1247,15 @@ function BoletimCard({ secao }) {
 
       {secao.tipo === 'texto' && <p>{secao.texto}</p>}
 
-      {secao.tipo === 'lista' && (
-        <ul className="boletim-lista">
-          {secao.itens.map((item, i) => <li key={i}>{item}</li>)}
-        </ul>
+        {secao.tipo === 'lista' && (
+        <>
+          <ul className="boletim-lista">
+            {secao.itens.map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+          {secao.rodape && <p className="boletim-rodape">{secao.rodape}</p>}
+        </>
       )}
+
     </article>
   )
 }
